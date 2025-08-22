@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -12,46 +12,44 @@ export default function Login() {
       const res = await axios.post(
         `${import.meta.env.VITE_TRAVEL_API_BASE_URL}/api/v1/login`,
         { email, password },
-        {
-          headers: {
-            "apiKey": import.meta.env.VITE_TRAVEL_API_KEY,
-          },
-        }
+        { headers: { apiKey: import.meta.env.VITE_TRAVEL_API_KEY } }
       );
       localStorage.setItem("token", res.data.token);
       alert("Login berhasil!");
       window.location.href = "/";
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Login gagal. Cek email & password.");
     }
   };
 
   return (
-    <div>
-      <Navbar />
-      <div className="container mx-auto px-6 py-10">
-        <h1 className="text-3xl font-bold mb-4">Login</h1>
+    <div className="flex min-h-screen bg-gray-100">
+      <Sidebar />
+      <main className="flex-1 p-6">
+        <h1 className="text-xl font-bold mb-6">Login</h1>
         <form onSubmit={handleLogin} className="max-w-sm">
           <input
             type="email"
             placeholder="Email"
-            className="border p-2 w-full mb-4 rounded"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="border p-2 w-full mb-3 rounded text-sm"
           />
           <input
             type="password"
             placeholder="Password"
-            className="border p-2 w-full mb-4 rounded"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className="border p-2 w-full mb-3 rounded text-sm"
           />
-          <button className="bg-blue-500 text-white px-4 py-2 rounded">
+          <button
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded w-full text-sm"
+          >
             Login
           </button>
         </form>
-      </div>
+      </main>
     </div>
   );
 }
