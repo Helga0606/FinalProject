@@ -1,71 +1,76 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import api from "../services/api";
 
 export default function ActivityDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [activity, setActivity] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const token = localStorage.getItem("token");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_TRAVEL_API_BASE_URL}/api/v1/activity/${id}`, {
-      headers: { apiKey: import.meta.env.VITE_TRAVEL_API_KEY },
-    })
-    .then((res) => setActivity(res.data.data))
-    .catch((err) => console.error(err));
+    api.get(`/api/v1/activity/${id}`)
+      .then((res) => setActivity(res.data.data))
+      .finally(() => setLoading(false));
   }, [id]);
 
   const handleAddToCart = async () => {
+    const token = localStorage.getItem("token");
     if (!token) {
       alert("Silakan login terlebih dahulu.");
-      window.location.href = "/login";
+      navigate("/login");
       return;
     }
     try {
-      await axios.post(
-        `${import.meta.env.VITE_TRAVEL_API_BASE_URL}/api/v1/create-cart`,
-        { activityId: id, totalTicket: quantity },
-        {
-          headers: {
-            apiKey: import.meta.env.VITE_TRAVEL_API_KEY,
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await api.post("/api/v1/create-cart", {
+        activityId: id,
+        totalTicket: Number(quantity),
+      });
       alert("Ditambahkan ke Cart!");
-      window.location.href = "/cart";
-    } catch {
+      navigate("/cart");
+    } catch (e) {
+      console.error(e);
       alert("Gagal menambahkan ke Cart.");
     }
   };
 
-  if (!activity) return <p>Loading...</p>;
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (!activity) return <div className="p-6">Aktivitas tidak ditemukan.</div>;
 
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
       <main className="flex-1 p-6">
-        <h1 className="text-2xl font-bold">{activity.title}</h1>
+        <button
+          onClick={() => navigate("/")}
+          className="mb-4 bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded"
+        >
+          ← Kembali ke Home
+        </button>
+
+        <h1 className="text-2xl font-bold mb-4">{activity.title}</h1>
+
         <img
-          src={activity.imageUrls[0]}
+          src={activity.imageUrls?.[0]}
           alt={activity.title}
-          className="w-full h-56 object-cover rounded my-3"
+          className="w-full max-w-2xl h-56 object-cover rounded mb-4 shadow"
         />
-        <p className="text-sm">{activity.description}</p>
+
+        <p className="text-sm text-gray-700 mb-3">{activity.description}</p>
         <p className="font-bold mt-2 text-sm">Kota: {activity.city}</p>
         <p className="font-bold text-blue-600 text-sm">
-          Harga: Rp {activity.price.toLocaleString()}
+          Harga: Rp {Number(activity.price).toLocaleString()}
         </p>
 
-        <div className="flex gap-3 mt-4">
+        <div className="flex gap-3 mt-5">
           <input
             type="number"
             min="1"
             value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-            className="border p-1 w-20 rounded text-sm"
+            onChange={(e) => setQuantity(e.target.value)}
+            className="border p-2 w-20 rounded text-sm"
           />
           <button
             onClick={handleAddToCart}

@@ -1,78 +1,87 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import api from "../services/api";
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const token = localStorage.getItem("token");
 
   const fetchTransactions = () => {
-    axios.get(`${import.meta.env.VITE_TRAVEL_API_BASE_URL}/api/v1/transactions`, {
-      headers: { 
-        apiKey: import.meta.env.VITE_TRAVEL_API_KEY, 
-        Authorization: `Bearer ${token}` 
-      },
-    })
-    .then((res) => setTransactions(res.data.data))
-    .catch((err) => console.error(err));
+    if (!token) return;
+    api
+      .get("/api/v1/transactions")
+      .then((res) => setTransactions(res.data.data || []))
+      .catch((e) => console.error(e));
   };
 
   useEffect(() => {
-    if (!token) {
-      alert("Silakan login terlebih dahulu.");
-      window.location.href = "/login";
-      return;
-    }
     fetchTransactions();
   }, []);
 
-  const handleDelete = async (id) => {
-    await axios.delete(`${import.meta.env.VITE_TRAVEL_API_BASE_URL}/api/v1/transaction/${id}`, {
-      headers: { 
-        apiKey: import.meta.env.VITE_TRAVEL_API_KEY, 
-        Authorization: `Bearer ${token}` 
-      },
-    });
-    fetchTransactions();
+  const handleDelete = async (trxId) => {
+    // Sesuaikan dengan endpoint di koleksi Postman (mis: /api/v1/transaction/:id)
+    try {
+      await api.delete(`/api/v1/transaction/${trxId}`);
+      setTransactions((prev) => prev.filter((t) => t.id !== trxId));
+    } catch (e) {
+      console.error(e);
+      alert("Gagal menghapus transaksi.");
+    }
   };
+
+  if (!token) {
+    return (
+      <div className="flex min-h-screen bg-gray-100">
+        <Sidebar />
+        <main className="flex-1 p-6">
+          <h1 className="text-xl font-bold mb-4">Transaksi</h1>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <p className="text-red-500">Silakan login terlebih dahulu.</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
       <main className="flex-1 p-6">
-        <h1 className="text-xl font-bold mb-6">Daftar Transaksi</h1>
+        <h1 className="text-xl font-bold mb-4">Transaksi</h1>
+
         {transactions.length === 0 ? (
-          <p className="text-sm">Belum ada transaksi.</p>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <p className="text-gray-500">Belum ada transaksi.</p>
+          </div>
         ) : (
-          <table className="w-full border text-sm">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="p-2 border">Judul</th>
-                <th className="p-2 border">Jumlah</th>
-                <th className="p-2 border">Total</th>
-                <th className="p-2 border">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((trx) => (
-                <tr key={trx.id}>
-                  <td className="p-2 border">{trx.activity.title}</td>
-                  <td className="p-2 border">{trx.totalTicket}</td>
-                  <td className="p-2 border">
-                    Rp {trx.totalPrice.toLocaleString()}
-                  </td>
-                  <td className="p-2 border">
-                    <button
-                      onClick={() => handleDelete(trx.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded text-sm"
-                    >
-                      Hapus
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid gap-4">
+            {transactions.map((trx) => (
+              <div
+                key={trx.id}
+                className="bg-white p-4 rounded-lg shadow flex justify-between items-center"
+              >
+                <div className="text-sm">
+                  <p className="font-semibold">{trx.activity?.title}</p>
+                  <p className="text-xs text-gray-500">
+                    {trx.totalTicket} Tiket • Rp{" "}
+                    {Number(trx.totalPrice).toLocaleString()}
+                  </p>
+                  <p className="text-xs">
+                    Status:{" "}
+                    <span className="font-medium capitalize">
+                      {trx.status || "pending"}
+                    </span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDelete(trx.id)}
+                  className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                >
+                  Hapus
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </main>
     </div>
